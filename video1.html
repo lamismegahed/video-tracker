@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Training Video 1</title>
+  </head>
+  <body>
+    <h2>Training Video 1 Progress Tracker</h2>
+    <div id="player"></div>
+    <p>Progress: <span id="progressPercent">0%</span></p>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+      let player;
+      let duration = 0;
+      let hasCompleted = false;
+      let maxWatched = 0;
+      let isSeeking = false;
+
+      const VIDEO_ID = "2H9p9Hcn79E"; // <-- change this for each video
+
+      function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+          videoId: VIDEO_ID,
+          playerVars: { controls: 1 },
+          events: {
+            onReady: (e) => {
+              duration = e.target.getDuration();
+              trackProgress();
+              monitorSeeking();
+            }
+          }
+        });
+      }
+
+      // track progress every second
+      function trackProgress() {
+        setInterval(() => {
+          if (!player || !duration) return;
+          const currentTime = player.getCurrentTime();
+
+          if (currentTime > maxWatched) maxWatched = currentTime;
+          const percent = (currentTime / duration) * 100;
+          document.getElementById('progressPercent').textContent = percent.toFixed(0) + "%";
+
+          if (percent >= 99 && !hasCompleted) {
+            hasCompleted = true;
+            alert("✅ You finished watching the full video!");
+          }
+        }, 1000);
+      }
+
+      // detect skipping and prevent it continuously
+      function monitorSeeking() {
+        setInterval(() => {
+          if (!player) return;
+          const currentTime = player.getCurrentTime();
+
+          if (currentTime > maxWatched + 2) {
+            player.seekTo(maxWatched, true);
+            alert("⛔ Skipping is not allowed. Please watch in full!");
+          }
+        }, 500);
+      }
+    </script>
+  </body>
+</html>
