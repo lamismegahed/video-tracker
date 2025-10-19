@@ -1,0 +1,59 @@
+<html>
+  <head>
+    <title>Video Progress Tracker</title>
+  </head>
+  <body>
+    <h2>Training Video Progress Tracker</h2>
+    <div id="player"></div>
+    <p>Progress: <span id="progressPercent">0%</span></p>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+      let player, duration = 0, hasCompleted = false, maxWatched = 0;
+
+      // Get video ID from URL (?vid=XXXXXXXX)
+      const urlParams = new URLSearchParams(window.location.search);
+      const videoId = urlParams.get("vid") || "2H9p9Hcn79E"; // default if none provided
+
+      function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+          videoId: videoId,
+          playerVars: { controls: 1 },
+          events: {
+            onReady: (e) => {
+              duration = e.target.getDuration();
+              trackProgress();
+              preventSkipping();
+            }
+          }
+        });
+      }
+
+      function trackProgress() {
+        setInterval(() => {
+          if (!player || !duration) return;
+          const currentTime = player.getCurrentTime();
+          if (currentTime > maxWatched) maxWatched = currentTime;
+          const percent = (currentTime / duration) * 100;
+          document.getElementById('progressPercent').textContent = percent.toFixed(0) + "%";
+          if (percent >= 100 && !hasCompleted) {
+            hasCompleted = true;
+            alert("✅ You finished watching the video!");
+            // later we'll add a webhook here to Zoho
+          }
+        }, 2000);
+      }
+
+      function preventSkipping() {
+        setInterval(() => {
+          if (!player) return;
+          const currentTime = player.getCurrentTime();
+          if (currentTime > maxWatched + 1) {
+            player.seekTo(maxWatched, true);
+            alert("⛔ You cannot skip ahead!");
+          }
+        }, 1000);
+      }
+    </script>
+  </body>
+</html>
