@@ -1,66 +1,85 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Training Video 1</title>
-  </head>
-  <body>
-    <h2>Training Video 1 Progress Tracker</h2>
-    <div id="player"></div>
-    <p>Progress: <span id="progressPercent">0%</span></p>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Video Tracker (No Skip)</title>
+  <style>
+    body { 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh; 
+      background: #f4f4f4; 
+    }
+    iframe {
+      border: none;
+      width: 800px;
+      height: 450px;
+    }
+  </style>
+</head>
+<body>
 
-    <script src="https://www.youtube.com/iframe_api"></script>
-    <script>
-      let player;
-      let duration = 0;
-      let hasCompleted = false;
-      let maxWatched = 0;
-      let isSeeking = false;
+  <div id="player"></div>
 
-      const VIDEO_ID = "2H9p9Hcn79E"; // <-- change this for each video
+  <script>
+    let player;
+    let lastTime = 0;
+    let allowSkip = false; // control skip permission
 
-      function onYouTubeIframeAPIReady() {
-        player = new YT.Player('player', {
-          videoId: VIDEO_ID,
-          playerVars: { controls: 1 },
-          events: {
-            onReady: (e) => {
-              duration = e.target.getDuration();
-              trackProgress();
-              monitorSeeking();
-            }
-          }
-        });
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        height: '450',
+        width: '800',
+        videoId: '2H9p9Hcn79E', // <-- change this per video
+        playerVars: { 
+          controls: 1, 
+          disablekb: 1, 
+          modestbranding: 1 
+        },
+        events: { 
+          onReady: onPlayerReady, 
+          onStateChange: onPlayerStateChange 
+        }
+      });
+    }
+
+    function onPlayerReady() {
+      player.playVideo();
+      trackProgress();
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        trackProgress();
       }
+    }
 
-      // track progress every second
-      function trackProgress() {
-        setInterval(() => {
-          if (!player || !duration) return;
+    function trackProgress() {
+      setInterval(() => {
+        if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
           const currentTime = player.getCurrentTime();
 
-          if (currentTime > maxWatched) maxWatched = currentTime;
-          const percent = (currentTime / duration) * 100;
-          document.getElementById('progressPercent').textContent = percent.toFixed(0) + "%";
-
-          if (percent >= 99 && !hasCompleted) {
-            hasCompleted = true;
-            alert("✅ You finished watching the full video!");
+          // prevent skipping ahead
+          if (currentTime - lastTime > 2 && !allowSkip) {
+            player.seekTo(lastTime);
+          } else {
+            lastTime = currentTime;
           }
-        }, 1000);
-      }
 
-      // detect skipping and prevent it continuously
-      function monitorSeeking() {
-        setInterval(() => {
-          if (!player) return;
-          const currentTime = player.getCurrentTime();
-
-          if (currentTime > maxWatched + 2) {
-            player.seekTo(maxWatched, true);
-            alert("⛔ Skipping is not allowed. Please watch in full!");
+          // unlock skip only after full video watched
+          const duration = player.getDuration();
+          if (currentTime >= duration - 1) {
+            allowSkip = true;
           }
-        }, 500);
-      }
-    </script>
-  </body>
+        }
+      }, 1000);
+    }
+
+    // Load YouTube API
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  </script>
+</body>
 </html>
