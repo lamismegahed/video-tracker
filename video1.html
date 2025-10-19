@@ -2,19 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Video Tracker (No Skip)</title>
+  <title>Video Tracker (No Skip + Progress)</title>
   <style>
-    body { 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      height: 100vh; 
-      background: #f4f4f4; 
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f4f4f4;
+      font-family: Arial, sans-serif;
     }
-    iframe {
+
+    #player {
       border: none;
       width: 800px;
       height: 450px;
+      margin-bottom: 20px;
+    }
+
+    #progressContainer {
+      width: 800px;
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 20px;
+    }
+
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background: #4CAF50;
+      transition: width 0.3s;
+    }
+
+    #progressText {
+      margin-top: 10px;
+      font-size: 16px;
     }
   </style>
 </head>
@@ -22,29 +46,36 @@
 
   <div id="player"></div>
 
+  <div id="progressContainer">
+    <div id="progressBar"></div>
+  </div>
+  <p id="progressText">Progress: 0%</p>
+
   <script>
     let player;
     let lastTime = 0;
-    let allowSkip = false; // control skip permission
+    let allowSkip = false;
+    let duration = 0;
 
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '450',
         width: '800',
-        videoId: '2H9p9Hcn79E', // <-- change this per video
+        videoId: '2H9p9Hcn79E', // ← change this per video
         playerVars: { 
-          controls: 1, 
-          disablekb: 1, 
-          modestbranding: 1 
+          controls: 1,
+          disablekb: 1,
+          modestbranding: 1
         },
         events: { 
-          onReady: onPlayerReady, 
-          onStateChange: onPlayerStateChange 
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange
         }
       });
     }
 
     function onPlayerReady() {
+      duration = player.getDuration();
       player.playVideo();
       trackProgress();
     }
@@ -57,21 +88,26 @@
 
     function trackProgress() {
       setInterval(() => {
-        if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
-          const currentTime = player.getCurrentTime();
+        if (!player || player.getPlayerState() !== YT.PlayerState.PLAYING) return;
+        
+        const currentTime = player.getCurrentTime();
 
-          // prevent skipping ahead
-          if (currentTime - lastTime > 2 && !allowSkip) {
-            player.seekTo(lastTime);
-          } else {
-            lastTime = currentTime;
-          }
+        // prevent skipping ahead
+        if (currentTime - lastTime > 2 && !allowSkip) {
+          player.seekTo(lastTime);
+        } else {
+          lastTime = currentTime;
+        }
 
-          // unlock skip only after full video watched
-          const duration = player.getDuration();
-          if (currentTime >= duration - 1) {
-            allowSkip = true;
-          }
+        // update progress %
+        const percent = ((currentTime / duration) * 100).toFixed(1);
+        document.getElementById('progressBar').style.width = percent + '%';
+        document.getElementById('progressText').textContent = 'Progress: ' + percent + '%';
+
+        // unlock skip only after full video watched
+        if (currentTime >= duration - 1) {
+          allowSkip = true;
+          document.getElementById('progressText').textContent = 'Video Completed!';
         }
       }, 1000);
     }
